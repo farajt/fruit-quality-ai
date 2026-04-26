@@ -5,7 +5,7 @@ Upload a photo of an apple, banana, or orange — get instant freshness
 analysis, quality grade, shelf life estimate, and an AI-generated quality 
 report in seconds.
 
-**Live Demo** → [fruit-quality-ai.streamlit.app](https://your-app.streamlit.app)
+**Live Demo** → https://fruit-quality-ai-qubmmbkacdkkeq2duaypge.streamlit.app/
 
 ---
 
