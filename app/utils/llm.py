@@ -1,7 +1,22 @@
 # ============================================================
 # llm.py — LLM enrichment with forced complete responses
 # ============================================================
+def _get_key(name: str) -> str:
+    """Read key from Streamlit secrets (cloud) or .env (local)."""
+    # Try Streamlit secrets first (cloud deployment)
+    try:
+        import streamlit as st
+        val = st.secrets.get(name, "")
+        if val:
+            return val.strip()
+    except Exception:
+        pass
+    # Fall back to environment variable (local .env)
+    import os
+    return os.getenv(name, "").strip()
 
+# Then replace os.getenv("GROQ_API_KEY") with _get_key("GROQ_API_KEY")
+# everywhere in the file
 import os
 from dotenv import load_dotenv
 
@@ -105,9 +120,8 @@ def parse_response(text: str) -> dict:
 
 def get_llm_report(result: dict) -> dict:
     load_dotenv(override=True)
-    groq_key   = os.getenv("GROQ_API_KEY",   "").strip()
-    gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
-
+    groq_key   =  _get_key("GROQ_API_KEY")
+    gemini_key = _get_key("GEMINI_API_KEY")
     if not groq_key and not gemini_key:
         return {"status": "unavailable",
                 "message": "No API keys found in .env file."}
