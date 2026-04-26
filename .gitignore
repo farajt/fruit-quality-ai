@@ -1,0 +1,36 @@
+# ── API Keys & Secrets ────────────────────────────────────
+.env
+*.env
+api_keys.json
+kaggle.json
+
+# ── Model weights (too large for GitHub) ─────────────────
+*.h5
+*.weights.h5
+*.keras
+*.pb
+
+# ── Python ────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+*.egg-info/
+
+# ── Streamlit ─────────────────────────────────────────────
+.streamlit/secrets.toml
+
+# ── Jupyter / Colab ───────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ── OS files ──────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Large data files ──────────────────────────────────────
+*.csv
+data/
+logs/

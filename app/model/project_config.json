@@ -1,0 +1,83 @@
+{
+  "CLASSES": [
+    "apple_fresh",
+    "apple_rotten",
+    "banana_fresh",
+    "banana_rotten",
+    "orange_fresh",
+    "orange_rotten"
+  ],
+  "CLASS_TO_IDX": {
+    "apple_fresh": 0,
+    "apple_rotten": 1,
+    "banana_fresh": 2,
+    "banana_rotten": 3,
+    "orange_fresh": 4,
+    "orange_rotten": 5
+  },
+  "IDX_TO_CLASS": {
+    "0": "apple_fresh",
+    "1": "apple_rotten",
+    "2": "banana_fresh",
+    "3": "banana_rotten",
+    "4": "orange_fresh",
+    "5": "orange_rotten"
+  },
+  "CONFIG": {
+    "image_size": 224,
+    "batch_size": 32,
+    "phase1_epochs": 10,
+    "phase2_epochs": 40,
+    "phase1_lr": 0.001,
+    "phase2_lr": 1e-05,
+    "dropout_rate": 0.4,
+    "confidence_gate": 0.7,
+    "seed": 42
+  },
+  "GRADE_CONFIG": {
+    "A": {
+      "min": 0.85,
+      "label": "Fresh",
+      "risk": "Low",
+      "recommendation": "Safe to consume"
+    },
+    "B": {
+      "min": 0.65,
+      "label": "Good",
+      "risk": "Low",
+      "recommendation": "Consume within 2\u20133 days"
+    },
+    "C": {
+      "min": 0.4,
+      "label": "Moderate",
+      "risk": "Medium",
+      "recommendation": "Consume today"
+    },
+    "F": {
+      "min": 0.0,
+      "label": "Spoiled",
+      "risk": "High",
+      "recommendation": "Do not consume"
+    }
+  },
+  "SHELF_LIFE": {
+    "apple": {
+      "A": "5\u20137 days",
+      "B": "2\u20134 days",
+      "C": "1 day",
+      "F": "0 days"
+    },
+    "banana": {
+      "A": "3\u20135 days",
+      "B": "1\u20132 days",
+      "C": "Same day",
+      "F": "0 days"
+    },
+    "orange": {
+      "A": "7\u201310 days",
+      "B": "3\u20136 days",
+      "C": "1\u20132 days",
+      "F": "0 days"
+    }
+  }
+}
