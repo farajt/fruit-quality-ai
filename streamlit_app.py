@@ -1,34 +1,44 @@
 # ============================================================
-# streamlit_app.py — Fruit Quality AI — Professional UI
+# streamlit_app.py — Fruit Quality AI
 # ============================================================
-# streamlit_app.py — top of file, before all imports
 
 import os
+import io
+import streamlit as st
+from PIL import Image
+from dotenv import load_dotenv
 
-# Auto-download model weights if not present (for cloud deploy)
+load_dotenv()
+
+# ── Auto-download model weights if missing (cloud deploy) ─
 WEIGHTS_PATH = os.path.join(
     os.path.dirname(__file__),
     "app", "model", "model_weights.weights.h5")
 
 if not os.path.exists(WEIGHTS_PATH):
     import gdown
-    MODEL_URL = os.environ.get(
-        "MODEL_WEIGHTS_URL",
-        "https://drive.google.com/uc?id=1lDLrJuQt3GILWXPfO3PIHQsdYnkd5MwA"
-    )
-    print("⬇️ Downloading model weights...")
-    os.makedirs(os.path.dirname(WEIGHTS_PATH), exist_ok=True)
-    gdown.download(MODEL_URL, WEIGHTS_PATH, quiet=False)
-    print("✓ Model weights ready")
+    MODEL_URL = None
+    # Try Streamlit secrets first (cloud)
+    try:
+        MODEL_URL = st.secrets.get("MODEL_WEIGHTS_URL", None)
+    except Exception:
+        pass
+    # Fall back to environment variable (local)
+    if not MODEL_URL:
+        MODEL_URL = os.environ.get("MODEL_WEIGHTS_URL", "")
 
-# ... rest of your existing streamlit_app.py below
-import streamlit as st
-import os, io
-from PIL import Image
-from dotenv import load_dotenv
+    if MODEL_URL:
+        print("⬇️ Downloading model weights...")
+        os.makedirs(os.path.dirname(WEIGHTS_PATH), exist_ok=True)
+        gdown.download(MODEL_URL, WEIGHTS_PATH, quiet=False)
+        print("✓ Model weights ready")
+    else:
+        st.error(
+            "❌ Model weights not found and MODEL_WEIGHTS_URL "
+            "is not set. Please add it to Streamlit secrets.")
+        st.stop()
 
-load_dotenv()
-
+# ── Page config ───────────────────────────────────────────
 st.set_page_config(
     page_title="Fruit Quality AI",
     page_icon="🍎",
@@ -39,26 +49,16 @@ st.set_page_config(
 # ── Custom CSS ────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Global */
-[data-testid="stAppViewContainer"] {
-    background: #f7f8fa;
-}
-[data-testid="stHeader"] {
-    background: transparent;
-}
+[data-testid="stAppViewContainer"] { background: #f7f8fa; }
+[data-testid="stHeader"]           { background: transparent; }
+#MainMenu, footer                  { visibility: hidden; }
 
-/* Hide Streamlit branding */
-#MainMenu, footer { visibility: hidden; }
-
-/* Upload area */
 [data-testid="stFileUploader"] {
     background: white;
     border-radius: 12px;
     padding: 8px;
     border: 1px solid #e0e0e0;
 }
-
-/* Metric cards */
 [data-testid="stMetric"] {
     background: white;
     border-radius: 10px;
@@ -66,25 +66,11 @@ st.markdown("""
     border: 1px solid #e8e8e8;
     box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
-
-/* Progress bars */
-[data-testid="stProgress"] > div {
-    border-radius: 6px;
-}
-
-/* Info boxes */
-.stInfo {
-    border-radius: 10px;
-}
-
-/* Expander */
 [data-testid="stExpander"] {
     background: white;
     border-radius: 10px;
     border: 1px solid #e8e8e8;
 }
-
-/* Section headers */
 .section-header {
     font-size: 14px;
     font-weight: 600;
@@ -93,16 +79,12 @@ st.markdown("""
     letter-spacing: 0.05em;
     margin-bottom: 8px;
 }
-
-/* Grade badge */
 .grade-badge {
     border-radius: 14px;
     padding: 20px 24px;
     text-align: center;
     margin-bottom: 16px;
 }
-
-/* LLM card */
 .llm-card {
     background: white;
     border-radius: 12px;
@@ -111,8 +93,6 @@ st.markdown("""
     margin-bottom: 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.05);
 }
-
-/* Top nav bar */
 .topbar {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     padding: 18px 32px;
@@ -123,7 +103,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Load predictor and LLM ────────────────────────────────
+# ── Load predictor and LLM (cached) ──────────────────────
 @st.cache_resource
 def load_predictor():
     from app.utils.predictor import predict
@@ -161,7 +141,7 @@ st.markdown("""
                 Fruit Quality AI
             </div>
             <div style="font-size:13px;opacity:0.7;margin-top:2px">
-                EfficientNetB0 + CBAM · 99.57% accuracy · 
+                EfficientNetB0 + CBAM · 99.57% accuracy ·
                 Apple · Banana · Orange
             </div>
         </div>
@@ -188,17 +168,15 @@ with left:
         raw_bytes = uploaded.read()
         pil_image = Image.open(io.BytesIO(raw_bytes))
 
-        # Resize for display — max 400px wide
         display_img = pil_image.copy()
-        max_w = 400
-        if display_img.width > max_w:
-            ratio = max_w / display_img.width
+        if display_img.width > 400:
+            ratio = 400 / display_img.width
             display_img = display_img.resize(
-                (max_w, int(display_img.height * ratio)),
+                (400, int(display_img.height * ratio)),
                 Image.LANCZOS)
 
         st.image(display_img,
-                 caption=f"📁 {uploaded.name}  "
+                 caption=f"📁 {uploaded.name} "
                           f"({pil_image.width}×{pil_image.height}px)",
                  use_column_width=True)
 
@@ -213,7 +191,6 @@ with left:
         with col_b:
             use_llm = st.toggle("AI Report", value=True)
 
-        # Tips
         st.markdown("""
 <div style="background:white;border-radius:10px;padding:14px 16px;
             border:1px solid #e8e8e8;margin-top:12px;font-size:13px;
@@ -227,7 +204,6 @@ with left:
 """, unsafe_allow_html=True)
 
     else:
-        # Empty state
         st.markdown("""
 <div style="background:white;border-radius:14px;padding:48px 24px;
             text-align:center;border:2px dashed #d0d0d0;color:#aaa;">
@@ -253,8 +229,7 @@ with right:
     if not uploaded:
         st.markdown("""
 <div style="background:white;border-radius:14px;padding:48px 24px;
-            text-align:center;border:1px solid #e8e8e8;color:#bbb;
-            height:100%">
+            text-align:center;border:1px solid #e8e8e8;color:#bbb;">
     <div style="font-size:40px;margin-bottom:12px">📊</div>
     <div style="font-size:15px;font-weight:500;color:#ccc">
         Results will appear here
@@ -270,20 +245,18 @@ with right:
         with st.spinner("🔬 Analyzing fruit..."):
             result = predict_fn(pil_image)
 
-        # ── Uncertain ─────────────────────────────────────
         if result["status"] == "uncertain":
             st.warning(f"⚠️ {result['message']}")
             st.markdown("**Top predictions:**")
             for p in result["top3"]:
-                st.progress(p["prob"],
-                            text=f"{p['class'].replace('_',' ').title()}"
-                                 f"  ·  {p['prob']:.1%}")
+                st.progress(
+                    p["prob"],
+                    text=f"{p['class'].replace('_',' ').title()}"
+                         f"  ·  {p['prob']:.1%}")
 
-        # ── Error ─────────────────────────────────────────
         elif result["status"] == "error":
             st.error(f"❌ {result['message']}")
 
-        # ── Success ───────────────────────────────────────
         else:
             grade = result["grade"]
             color = GRADE_COLOR[grade]
@@ -293,10 +266,10 @@ with right:
             if result.get("warning"):
                 st.warning(f"⚠️ {result['warning']}")
 
-            # ── Grade card ────────────────────────────────
             st.markdown(
-                f"""<div class="grade-badge" style="background:{bg};
-                    border:2px solid {color}30;">
+                f"""<div class="grade-badge"
+                    style="background:{bg};
+                           border:2px solid {color}30;">
                     <div style="font-size:13px;font-weight:600;
                                 color:{color};opacity:0.8;
                                 text-transform:uppercase;
@@ -311,20 +284,18 @@ with right:
                     <div style="font-size:16px;color:{color};
                                 opacity:0.85;margin-top:4px;
                                 font-weight:500">
-                        {result['condition'].capitalize()} · 
+                        {result['condition'].capitalize()} ·
                         {result['grade_label']}
                     </div>
                 </div>""",
                 unsafe_allow_html=True)
 
-            # ── Metrics ───────────────────────────────────
             c1, c2, c3 = st.columns(3)
             c1.metric("Confidence",
                        f"{result['confidence']:.1%}")
             c2.metric("Freshness Score",
                        f"{result['freshness_score']:.4f}")
-            c3.metric("Shelf Life",
-                       result["shelf_life"])
+            c3.metric("Shelf Life", result["shelf_life"])
 
             c4, c5 = st.columns(2)
             c4.metric("Risk Level",     result["risk_level"])
@@ -332,28 +303,22 @@ with right:
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            # ── Probability bars ──────────────────────────
             st.markdown(
                 '<div class="section-header">Top Predictions</div>',
                 unsafe_allow_html=True)
             for p in result["top3"]:
-                label = p["class"].replace("_", " ").title()
-                st.progress(
-                    p["prob"],
-                    text=f"{label}  ·  {p['prob']:.2%}")
+                lbl = p["class"].replace("_", " ").title()
+                st.progress(p["prob"],
+                            text=f"{lbl}  ·  {p['prob']:.2%}")
 
             st.markdown("<br>", unsafe_allow_html=True)
 
-            # ── Grad-CAM ──────────────────────────────────
             with st.expander("🔬 Grad-CAM — Model Attention Map"):
                 st.image(
                     result["gradcam"],
-                    caption="Heatmap showing which regions "
-                             "influenced the prediction most. "
-                             "Red = highest attention.",
+                    caption="Red = regions the model focused on most.",
                     use_column_width=True)
 
-            # ── LLM Report ────────────────────────────────
             if use_llm:
                 st.markdown("<br>", unsafe_allow_html=True)
                 st.markdown(
@@ -367,40 +332,30 @@ with right:
                 if llm.get("status") == "success":
                     st.markdown(
                         f"<div style='font-size:12px;color:#aaa;"
-                        f"margin-bottom:12px;'>Generated by "
-                        f"{llm['model']}</div>",
+                        f"margin-bottom:12px;'>"
+                        f"Generated by {llm['model']}</div>",
                         unsafe_allow_html=True)
 
                     sections = [
                         ("📋 Quality Summary",
-                         "quality_summary",
-                         "#3498db", "#ebf5fb"),
+                         "quality_summary",  "#3498db"),
                         ("🌡️ Storage Advice",
-                         "storage_advice",
-                         "#27ae60", "#eafaf1"),
+                         "storage_advice",   "#27ae60"),
                         ("⏰ Consumption Window",
-                         "consumption_window",
-                         "#e67e22", "#fef5e7"),
+                         "consumption_window","#e67e22"),
                         ("🥗 Nutritional Impact",
-                         "nutritional_impact",
-                         "#8e44ad", "#f4ecf7"),
+                         "nutritional_impact","#8e44ad"),
                     ]
 
-                    # Two cards per row
-                    row1 = sections[:2]
-                    row2 = sections[2:]
-
-                    for row in [row1, row2]:
+                    for row_items in [sections[:2], sections[2:]]:
                         cols = st.columns(2)
-                        for col, (title, key,
-                                  clr, bg_clr) in zip(
-                                cols, row):
+                        for col, (title, key, clr) in zip(
+                                cols, row_items):
                             with col:
                                 content = llm.get(key, "")
                                 st.markdown(
                                     f"""<div class="llm-card"
-                                    style="border-left:4px solid
-                                    {clr};">
+                                    style="border-left:4px solid {clr};">
                                     <div style="font-size:13px;
                                         font-weight:700;
                                         color:{clr};
@@ -415,17 +370,9 @@ with right:
                                     unsafe_allow_html=True)
 
                 elif llm.get("status") == "unavailable":
-                    st.markdown(
-                        """<div style="background:white;
-                        border-radius:10px;padding:16px;
-                        border:1px solid #e8e8e8;
-                        border-left:4px solid #e74c3c;
-                        font-size:13px;color:#666;">
-                        <strong>AI Report Unavailable</strong><br>
-                        Check your GROQ_API_KEY and GEMINI_API_KEY
-                        in the .env file.
-                        </div>""",
-                        unsafe_allow_html=True)
+                    st.warning(
+                        "⚠️ AI Report unavailable. "
+                        "Check API keys in Streamlit secrets.")
 
     elif uploaded and not analyze_btn:
         st.markdown("""
@@ -433,7 +380,7 @@ with right:
             text-align:center;border:1px solid #e8e8e8;color:#bbb;">
     <div style="font-size:36px;margin-bottom:10px">👈</div>
     <div style="font-size:14px;color:#aaa">
-        Click <strong style="color:#888">Analyze Fruit</strong> 
+        Click <strong style="color:#888">Analyze Fruit</strong>
         to run the AI model
     </div>
 </div>
@@ -442,11 +389,10 @@ with right:
 # ── Footer ────────────────────────────────────────────────
 st.markdown("<br>", unsafe_allow_html=True)
 st.markdown("""
-<div style="text-align:center;padding:16px;
-            color:#bbb;font-size:12px;
+<div style="text-align:center;padding:16px;color:#bbb;font-size:12px;
             border-top:1px solid #e8e8e8;">
-    Fruit Quality AI &nbsp;·&nbsp; EfficientNetB0 + CBAM Attention &nbsp;·&nbsp; 
-    99.57% test accuracy &nbsp;·&nbsp; 18,984 training images &nbsp;·&nbsp;
-    Built with TensorFlow & Streamlit
+    Fruit Quality AI &nbsp;·&nbsp; EfficientNetB0 + CBAM &nbsp;·&nbsp;
+    99.57% accuracy &nbsp;·&nbsp; 18,984 training images &nbsp;·&nbsp;
+    Built with TensorFlow &amp; Streamlit
 </div>
 """, unsafe_allow_html=True)
