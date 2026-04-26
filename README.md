@@ -76,6 +76,8 @@ Our model outperforms the paper's best model by **+1.81% accuracy**.
 ---
 
 ## Project Structure
+
+```
 fruit-quality-ai/
 ├── app/
 │   ├── model/
@@ -85,7 +87,7 @@ fruit-quality-ai/
 │       └── llm.py                  # Groq + Gemini LLM report
 ├── notebooks/
 │   ├── FruitQualityAI_Training.ipynb     # Model training (Colab)
-│   └── FruitQualityAI_Comparison.ipynb  # Model comparison
+│   └── FruitQualityAI_Comparison.ipynb   # Model comparison
 ├── .streamlit/
 │   └── config.toml                 # Streamlit theme config
 ├── streamlit_app.py                # Main web application
@@ -93,7 +95,7 @@ fruit-quality-ai/
 ├── requirements.txt                # Python dependencies
 ├── .env.example                    # Environment variables template
 └── README.md
----
+```
 
 ## Run Locally
 
