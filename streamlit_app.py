@@ -2,6 +2,7 @@
 # streamlit_app.py — Fruit Quality AI
 # ============================================================
 
+
 import os
 import io
 import streamlit as st
@@ -17,26 +18,54 @@ WEIGHTS_PATH = os.path.join(
 
 if not os.path.exists(WEIGHTS_PATH):
     import gdown
+
+    # Get URL from Streamlit secrets (cloud) or env (local)
     MODEL_URL = None
-    # Try Streamlit secrets first (cloud)
     try:
         MODEL_URL = st.secrets.get("MODEL_WEIGHTS_URL", None)
     except Exception:
         pass
-    # Fall back to environment variable (local)
     if not MODEL_URL:
         MODEL_URL = os.environ.get("MODEL_WEIGHTS_URL", "")
 
     if MODEL_URL:
-        print("⬇️ Downloading model weights...")
+        # Extract file ID from any Google Drive URL format
+        import re
+        match = re.search(r'/d/([a-zA-Z0-9_-]+)', MODEL_URL)
+        if match:
+            file_id  = match.group(1)
+            # Use fuzzy=True — handles Drive's virus scan redirect
+            dl_url   = f"https://drive.google.com/uc?id={file_id}"
+        else:
+            # Already a direct URL or uc?id= format
+            dl_url   = MODEL_URL
+
+        print(f"⬇️ Downloading model weights...")
         os.makedirs(os.path.dirname(WEIGHTS_PATH), exist_ok=True)
-        gdown.download(MODEL_URL, WEIGHTS_PATH, quiet=False)
-        print("✓ Model weights ready")
+
+        try:
+            gdown.download(
+                dl_url,
+                WEIGHTS_PATH,
+                quiet=False,
+                fuzzy=True       # ← key fix: handles redirects
+            )
+            print("✓ Model weights ready")
+        except Exception as e:
+            st.error(
+                f"❌ Failed to download model weights.\n\n"
+                f"Error: {e}\n\n"
+                f"Please check that your Google Drive file is set to "
+                f"'Anyone with the link' → Viewer.")
+            st.stop()
     else:
         st.error(
-            "❌ Model weights not found and MODEL_WEIGHTS_URL "
-            "is not set. Please add it to Streamlit secrets.")
+            "❌ MODEL_WEIGHTS_URL not set in Streamlit secrets.\n\n"
+            "Go to: share.streamlit.io → your app → Settings → "
+            "Secrets → add MODEL_WEIGHTS_URL")
         st.stop()
+
+# rest of file continues unchanged...
 
 # ── Page config ───────────────────────────────────────────
 st.set_page_config(
